@@ -1,4 +1,4 @@
-import { Reader } from '../reader'
+import { Reader, ask } from '../reader'
 import { readFileSync, writeFileSync } from 'fs'
 
 interface Config {
@@ -9,16 +9,23 @@ interface Config {
 
 type ConfigReader<T> = Reader<Config, T>
 
-const read: ConfigReader<Buffer> = new Reader(({ inputFile }) => readFileSync(inputFile))
-const write = (data: Buffer): ConfigReader<void> => new Reader(({ outputFile }) => writeFileSync(outputFile, data))
-const log = (message: string) => <T> (val: T): ConfigReader<T> => new Reader(({ logging }) => {
-  if (logging) {
-    console.log(message)
-  }
-  return val
-})
+const noop = Reader.box<Config, void>(undefined)
 
-const main = read
+// const read: ConfigReader<Buffer> = new Reader(({ inputFile }) => readFileSync(inputFile))
+const read: ConfigReader<Buffer> = ask<Config>().transform(({ inputFile }) => readFileSync(inputFile))
+
+// const write = (data: Buffer): ConfigReader<void> => new Reader(({ outputFile }) => writeFileSync(outputFile, data))
+const write = (data: Buffer): ConfigReader<void> => ask<Config>().transform(({ outputFile }) => writeFileSync(outputFile, data))
+
+const log = (message: string) => <T> (val: T): ConfigReader<T> => noop
+  .then(() => ask<Config>())
+  .transform(({ logging }) => {
+    if (logging) { console.log(message) }
+  })
+  .transform(() => val)
+
+const main = noop
+  .then(() => read)
   .then(log('Read successful'))
   .transform(buf => buf.toString('base64'))
   .transform(str => Buffer.from(str, 'utf8'))

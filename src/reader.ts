@@ -5,7 +5,7 @@ export class Reader<ReadOnlyState, T> {
     return this.fn(readOnlyState)
   }
 
-  static resolve <ReadOnlyState, V> (val: V): Reader<ReadOnlyState, V> {
+  static box <ReadOnlyState, V> (val: V): Reader<ReadOnlyState, V> {
     return new Reader(() => val)
   }
 
@@ -19,6 +19,8 @@ export class Reader<ReadOnlyState, T> {
   }
 
   transform <OutT> (fn: (input: T) => OutT): Reader<ReadOnlyState, OutT> {
-    return this.then(value => Reader.resolve(fn(value)))
+    return this.then(value => Reader.box(fn(value)))
   }
 }
+
+export const ask = <S> (): Reader<S, S> => new Reader(state => state)
