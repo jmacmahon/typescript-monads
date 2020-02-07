@@ -19,14 +19,16 @@ function firstWord (sentence: string): Maybe<string> {
   return firstWord === undefined ? Maybe.nothing() : Maybe.just(firstWord)
 }
 
+function toUpper (raw: string): string {
+  return raw.toUpperCase()
+}
+
 const firstWordOfCaption = (title: string): Maybe<string> => {
   return Maybe.box(title)
     .then(getGraphByTitle)
     .then(getGraphCaption)
     .then(firstWord)
+    .transform(toUpper)
 }
 
 console.log('foo', firstWordOfCaption('foo'))
-console.log('bar', firstWordOfCaption('bar'))
-console.log('baz', firstWordOfCaption('baz'))
-console.log('quux', firstWordOfCaption('quux'))
