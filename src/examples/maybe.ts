@@ -5,7 +5,11 @@ interface Graph {
   caption: Maybe<string>
 }
 
-const graphs: Graph[] = []
+const graphs: Graph[] = [
+  { title: 'foo', caption: Maybe.just('lorem ipsum') },
+  { title: 'bar', caption: Maybe.just('') },
+  { title: 'baz', caption: Maybe.nothing() }
+]
 
 function getGraphByTitle (title: string): Maybe<Graph> {
   const graph = graphs.find(graph => graph.title === title)
@@ -15,8 +19,8 @@ function getGraphByTitle (title: string): Maybe<Graph> {
 const getGraphCaption = (graph: Graph): Maybe<string> => graph.caption
 
 function firstWord (sentence: string): Maybe<string> {
-  const [firstWord] = sentence.split(' ')
-  return firstWord === undefined ? Maybe.nothing() : Maybe.just(firstWord)
+  const matchResult = /^([^ ]+)/.exec(sentence)
+  return matchResult === null ? Maybe.nothing() : Maybe.just(matchResult[1])
 }
 
 function toUpper (raw: string): string {
@@ -31,4 +35,7 @@ const firstWordOfCaption = (title: string): Maybe<string> => {
     .transform(toUpper)
 }
 
-console.log('foo', firstWordOfCaption('foo'))
+console.log('uppercased first word of caption for foo:', firstWordOfCaption('foo').unbox('nothing'))
+console.log('uppercased first word of caption for bar:', firstWordOfCaption('bar').unbox('nothing'))
+console.log('uppercased first word of caption for baz:', firstWordOfCaption('baz').unbox('nothing'))
+console.log('uppercased first word of caption for quux:', firstWordOfCaption('quux').unbox('nothing'))

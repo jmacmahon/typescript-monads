@@ -21,4 +21,8 @@ export class Maybe<T> {
   transform <OutT> (fn: (input: T) => OutT): Maybe<OutT> {
     return this.then(value => Maybe.box(fn(value)))
   }
+
+  unbox (def: T): T {
+    return this._value ?? def
+  }
 }
