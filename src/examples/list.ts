@@ -2,10 +2,10 @@ import { List } from '../list'
 
 type Relation<A, B> = Array<[A, B]>
 
-const lookup = <A, B> (relation: Relation<A, B>) => (needle: A): List<B> => {
+const mergingLookup = <A, B, T extends A> (relation: Relation<A, B>, needleField: keyof A) => (needle: T): List<T & B> => {
   const bs = relation
-    .filter(([a, b]) => a === needle)
-    .map(([a, b]) => b)
+    .filter(([a, b]) => a[needleField] === needle[needleField])
+    .map(([a, b]) => ({ ...needle, ...b }))
   return new List(bs)
 }
 
@@ -19,7 +19,6 @@ const bartending = { jobName: 'Bartending' }
 const foodPrep = { jobName: 'Food prep' }
 const cook = { jobName: 'Cooking' }
 const delivery = { jobName: 'Delivery' }
-const tables = { jobName: 'Waiting tables' }
 
 interface Site { siteName: string }
 const bar1 = { siteName: 'Floor 1 bar' }
@@ -28,8 +27,6 @@ const kitchen = { siteName: 'Kitchen' }
 const car1 = { siteName: 'Delivery car 1' }
 const car2 = { siteName: 'Delivery car 2' }
 const motorbike = { siteName: 'Delivery motorbike' }
-const tables1 = { siteName: 'Floor 1 tables' }
-const tables2 = { siteName: 'Floor 2 tables' }
 
 interface Qualification { qualificationName: string }
 const foodHygiene = { qualificationName: 'Food hygiene certificate' }
@@ -43,8 +40,7 @@ const peopleJobs: Relation<Person, Job> = [
   [bob, foodPrep],
   [bob, cook],
   [eve, foodPrep],
-  [eve, cook],
-  [eve, tables]
+  [eve, cook]
 ]
 
 const jobSites: Relation<Job, Site> = [
@@ -54,25 +50,23 @@ const jobSites: Relation<Job, Site> = [
   [cook, kitchen],
   [delivery, car1],
   [delivery, car2],
-  [delivery, motorbike],
-  [tables, tables1],
-  [tables, tables2]
+  [delivery, motorbike]
 ]
 
 const siteQualifications: Relation<Site, Qualification> = [
   [bar1, foodHygiene],
   [bar2, foodHygiene],
   [kitchen, foodHygiene],
-  [car1, licence],
-  [car2, licence],
-  [motorbike, licence]
+  [car1, carLicence],
+  [car2, carLicence],
+  [motorbike, motorbikeLicence]
 ]
 
 const getQualificationStatements = (person: Person): List<string> => List.box(person)
-  .then(lookup(peopleJobs))
-  .then(lookup(jobSites))
-  .then(lookup(siteQualifications))
-  .transform(qualification => `${person.personName} requires qualification ${qualification.qualificationName}`)
+  .then(mergingLookup(peopleJobs, 'personName'))
+  .then(mergingLookup(jobSites, 'jobName'))
+  .then(mergingLookup(siteQualifications, 'siteName'))
+  .transform(record => `${record.personName} requires qualification ${record.qualificationName} for job ${record.jobName} at site ${record.siteName}`)
 
 const statements = new List([alice, bob, eve]).then(getQualificationStatements).unbox()
 statements.map((statement) => console.log(statement))
