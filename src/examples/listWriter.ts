@@ -6,6 +6,14 @@ interface ReceivedMessage {
   body: string
 }
 
+interface ConfirmHandle {
+  handle: string
+}
+
+class ProcessError extends Error { }
+class ConfirmError extends Error { }
+type PipelineError = ProcessError | ConfirmError
+
 function receive (): ListWriter<never, ReceivedMessage[]> {
   return ListWriter.pure([
     { id: 'foo', body: 'lorem ipsum' },
@@ -14,29 +22,25 @@ function receive (): ListWriter<never, ReceivedMessage[]> {
   ])
 }
 
-type MyError =
-  { error: 'process error', message: string }
-  | { error: 'confirm error', message: string }
-interface ConfirmHandle { handle: string }
-
-function process (messages: ReceivedMessage[]): ListWriter<MyError, ConfirmHandle[]> {
+function process (messages: ReceivedMessage[]): ListWriter<ProcessError, ConfirmHandle[]> {
   // Fake DB bulk insert
   const [succeeded, failed] = partition(messages, () => Math.random() < 0.5)
-  const errors = failed.map((item): MyError => ({ error: 'process error', message: JSON.stringify(item) }))
+  const errors = failed.map((item) => new ProcessError(`process error for id ${item.id}`))
   const confirmations = succeeded.map(({ id }) => ({ handle: id }))
   return ListWriter.tell(errors).transform(() => confirmations)
 }
 
-function confirm (confirmations: ConfirmHandle[]): ListWriter<MyError, undefined> {
+function confirm (confirmations: ConfirmHandle[]): ListWriter<ConfirmError, void> {
   // Fake error-y confirmation
   const failed = partition(confirmations, () => Math.random() < 0.5)[1]
-  const errors = failed.map((item): MyError => ({ error: 'confirm error', message: JSON.stringify(item) }))
+  const errors = failed.map((item) => new ConfirmError(`confirm error for handle ${item.handle}`))
   return ListWriter.tell(errors)
 }
 
-const errors = receive()
-  .then(process)
-  .then(confirm)
-  .unbox()[1]
+const errors: PipelineError[] =
+  receive()
+    .then(process)
+    .then(confirm)
+    .unbox()[1]
 
 console.log(errors)
